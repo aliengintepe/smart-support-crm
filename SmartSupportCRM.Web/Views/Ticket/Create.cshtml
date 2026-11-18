@@ -1,0 +1,23 @@
+@model SmartSupportCRM.Web.Models.CreateTicketViewModel
+@{ ViewData["Title"] = "Create New Ticket"; }
+
+<h1>Create New Ticket</h1>
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label>Email</label>
+        <input asp-for="CustomerEmail" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Subject</label>
+        <input asp-for="Subject" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Content</label>
+        <textarea asp-for="Content" class="form-control" rows="5"></textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Submit</button>
+</form>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

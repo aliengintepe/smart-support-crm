@@ -1,0 +1,6 @@
+@model string
+@{ ViewData["Title"] = "Veritabanına erişilemiyor"; }
+<h1>Veritabanına erişilemiyor</h1>
+<p role="alert">@Model</p>
+<p>İşlem onaylanmadı. Listeye dönüp kaydın durumunu kontrol edin; kaydetme isteğini körlemesine tekrar göndermeyin.</p>
+<a asp-controller="Ticket" asp-action="Index" class="btn btn-primary">Talep listesini kontrol et</a>

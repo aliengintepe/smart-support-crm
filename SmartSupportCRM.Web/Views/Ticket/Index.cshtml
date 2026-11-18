@@ -1,0 +1,37 @@
+@model IEnumerable<SmartSupportCRM.Domain.Entities.Ticket>
+@{ ViewData["Title"] = "Support Tickets"; }
+
+<h1>Support Tickets</h1>
+<div class="d-flex gap-2 mb-3">
+    <a asp-action="Create" class="btn btn-primary">Create New Ticket</a>
+    <form asp-action="Clear" method="post">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete all tickets permanently?')">Clear Database</button>
+    </form>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Subject</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model) {
+        <tr>
+            <td>@item.CustomerEmail</td>
+            <td>@item.Subject</td>
+            <td>
+                <span class="badge @(item.Priority >= SmartSupportCRM.Domain.Entities.TicketPriority.High ? "bg-danger" : "bg-secondary")">
+                    @(item.AiSummary != null ? item.Priority.ToString() : "Analiz bekleniyor")
+                </span>
+            </td>
+            <td>@(item.IsResolved ? "Resolved" : "Open")</td>
+            <td><a asp-action="Details" asp-route-id="@item.Id">Details</a></td>
+        </tr>
+        }
+    </tbody>
+</table>

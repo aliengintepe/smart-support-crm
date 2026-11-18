@@ -1,0 +1,60 @@
+@model SmartSupportCRM.Domain.Entities.Ticket
+@using SmartSupportCRM.Domain.Entities
+@{ ViewData["Title"] = "Ticket Details";
+   var active = Model.AnalysisStatus is AnalysisStatus.Pending or AnalysisStatus.Processing or AnalysisStatus.RetryScheduled;
+   var refresh = active || Model.AnalysisNextAttemptAt > DateTime.UtcNow;
+   var hasResult = !string.IsNullOrWhiteSpace(Model.AiSummary) && !string.IsNullOrWhiteSpace(Model.SuggestedReply);
+}
+@if (TempData["AnalysisMessage"] is string message) {
+    <div class="alert alert-info" role="status">@message</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <h3>Ticket Details</h3>
+        <p><strong>Email:</strong> @Model.CustomerEmail</p>
+        <p><strong>Subject:</strong> @Model.Subject</p>
+        <p><strong>Content:</strong> @Model.Content</p>
+        
+        @if (!Model.IsResolved) {
+            <form asp-action="Resolve" asp-route-id="@Model.Id" method="post">
+                <button type="submit" class="btn btn-primary">Mark as Resolved</button>
+            </form>
+        }
+    </div>
+    <div class="col-md-6">
+        <h3>AI Analysis Panel</h3>
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Analiz durumu:</strong> @(Model.AnalysisStatus switch {
+                    AnalysisStatus.Pending => "Sırada", AnalysisStatus.Processing => "Model analiz ediyor",
+                    AnalysisStatus.Completed => "Tamamlandı", AnalysisStatus.RetryScheduled => "Yeniden deneme bekleniyor", _ => "Analiz tamamlanamadı" })</p>
+                @if (Model.AnalysisErrorCode != AnalysisErrorCode.None) {
+                    <div class="alert alert-warning" role="status">@SmartSupportCRM.Web.Models.AnalysisMessages.Error(Model.AnalysisErrorCode)</div>
+                }
+                @if (Model.AnalysisNextAttemptAt is DateTime next) {
+                    <p><strong>@(active ? "Sonraki deneme (UTC):" : "Tekrar denenebilecek zaman (UTC):")</strong> @next.ToString("yyyy-MM-dd HH:mm:ss")</p>
+                }
+                @if (hasResult && Model.AnalysisStatus != AnalysisStatus.Completed) {
+                    <p>Önceki başarılı model sonucu aşağıda korunuyor.</p>
+                }
+                <p><strong>Model:</strong> @(Model.AnalysisModel ?? "Gemini")</p>
+                <p><strong>Sentiment:</strong> @(hasResult ? Model.Sentiment.ToString() : "Henüz belirlenmedi")</p>
+                <p><strong>Priority:</strong> @(hasResult ? Model.Priority.ToString() : "Analiz bekleniyor")</p>
+                <p><strong>Category:</strong> @(hasResult ? Model.Category : "Analiz bekleniyor")</p>
+                <p><strong>Summary:</strong> @(Model.AiSummary ?? "Henüz model sonucu yok.")</p>
+                <p><strong>Suggested Reply (review before sending):</strong></p>
+                <p style="white-space: pre-wrap">@(Model.SuggestedReply ?? "No draft available.")</p>
+                <form asp-action="Reanalyze" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-outline-primary" disabled="@(active || Model.AnalysisNextAttemptAt > DateTime.UtcNow)">Yeniden analiz et</button>
+                </form>
+                @if (refresh) { <p class="text-muted">Sayfa analiz durumunu 10 saniyede bir günceller.</p> }
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    @if (refresh) {
+        <script>setTimeout(() => window.location.reload(), 10000);</script>
+    }
+}
