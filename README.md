@@ -1,54 +1,56 @@
 # SmartSupportCRM
 
-SmartSupportCRM, müşteri destek taleplerini SQL Server'da saklayan ve Gemini ile özet, yanıt taslağı, duygu, öncelik ve kategori üreten bir ASP.NET Core MVC uygulamasıdır.
+SmartSupportCRM is an ASP.NET Core MVC application that stores customer support tickets in SQL Server. It uses Gemini to summarize tickets, draft replies, and classify sentiment, priority, and category.
 
-## Mimari
+## Architecture
 
-- **Domain** — Talep modeli, analiz durumları ve hata kodları.
-- **Application** — Talep işlemleri ve model çağrısı için servis sözleşmeleri.
-- **Infrastructure** — EF Core, SQL Server migration'ları, analiz kuyruğu ve Gemini istemcisi.
-- **Web** — Razor ekranları, MVC controller'ları, sağlık uçları ve analiz worker'ı.
-- **Tests** — xUnit testleri, geçici SQLite veritabanı ve sentetik ONNX dosyaları.
+- **Domain** defines the ticket model, analysis statuses, and error codes.
+- **Application** defines service interfaces for ticket operations and model requests.
+- **Infrastructure** implements the SQL Server data layer, EF Core migrations, analysis queue, and Gemini client.
+- **Web** contains the Razor views, MVC controllers, health endpoints, and background worker.
+- **Tests** contains xUnit tests, an in-memory SQLite setup, and synthetic ONNX fixtures.
 
-Yeni talep önce SQL'e kaydedilir. Arka plan worker'ı kaydı kuyruktan alır, Gemini'ye başlık ve içerik gönderir ve doğrulanmış sonucu aynı kayda yazar. Geçici hatalarda kontrollü yeniden deneme uygulanır. Önerilen yanıt temsilci incelemesi için bir taslaktır.
+The application saves each ticket to SQL Server before analysis. A background worker picks up the ticket, sends its subject and body to Gemini, and saves the validated result to the same record. Temporary failures are retried with a delay. Suggested replies are drafts for a support agent to review.
 
-## Yerelde çalıştırma
+## Run locally
 
-Gereksinimler Windows, .NET 9 SDK ve SQL Server Express LocalDB'dir. Varsayılan bağlantı mevcut Windows kullanıcısının MSSQLLocalDB örneğini kullanır.
+You need Windows, the .NET 9 SDK, and SQL Server Express LocalDB. The default connection uses the current Windows user's MSSQLLocalDB instance.
+
+Restore the solution's dependencies.
 
 ~~~powershell
 dotnet restore SmartSupportCRM.sln
 ~~~
 
-EF CLI aracı yoksa 9.x sürümünü yükleyin:
+Install the EF Core 9 CLI tool if it is missing.
 
 ~~~powershell
 dotnet tool install --global dotnet-ef --version 9.0.8
 ~~~
 
-Veritabanı şemasını uygulayın:
+Apply the database migrations.
 
 ~~~powershell
 dotnet ef database update --project SmartSupportCRM.Infrastructure --startup-project SmartSupportCRM.Web
 ~~~
 
-Gemini anahtarını aynı PowerShell oturumunda ortam değişkeni olarak verin. PowerShell 7'de aşağıdaki komut anahtar girişini ekranda gizler:
+Set the Gemini API key in the same PowerShell session used to start the application. In PowerShell 7, the following command masks the key as you enter it.
 
 ~~~powershell
-$env:Gemini__ApiKey = Read-Host 'Gemini API anahtarı' -MaskInput
+$env:Gemini__ApiKey = Read-Host 'Gemini API key' -MaskInput
 dotnet run --project SmartSupportCRM.Web --launch-profile http
 ~~~
 
-Uygulama [localhost:5071](http://localhost:5071) adresinde açılır. Windows'ta bağlantı ön kontrolü ve başlatma için sırasıyla **.\Start-CRM.ps1 -CheckOnly** ve **.\Start-CRM.ps1** komutları da kullanılabilir. Model adlarını gerekirse **Gemini__Model** ve **Gemini__FallbackModel** ortam değişkenleriyle değiştirin.
+Open [localhost:5071](http://localhost:5071). On Windows, run **.\Start-CRM.ps1 -CheckOnly** to check the LocalDB connection or **.\Start-CRM.ps1** to start the application. You can override the model names with **Gemini__Model** and **Gemini__FallbackModel**.
 
-## Testler
+## Run tests
 
 ~~~powershell
 dotnet test SmartSupportCRM.sln
 ~~~
 
-Otomatik testler talep kuyruğunu, model hata senaryolarını ve MVC davranışını kapsar. Testlerdeki sabit çıktılı ONNX grafikleri entegrasyon testi içindir. Uygulamanın aktif analiz akışı Gemini kullanır.
+The tests cover the ticket queue, model failure handling, and MVC behavior. The ONNX fixtures return fixed outputs for integration tests. The running application uses Gemini for ticket analysis.
 
-## Kullanım kapsamı
+## Demo scope
 
-Bu proje yerel portföy demosu olarak hazırlanmıştır. Talep görüntüleme ve toplu silme eylemlerinde kullanıcı girişi ve rol denetimi henüz yoktur. Bir sunucuya dağıtmadan önce erişim denetimlerini ekleyin.
+This project is a local portfolio demo. Ticket viewing and bulk deletion currently have no sign-in or role checks. Add access controls before deploying it to a server.
